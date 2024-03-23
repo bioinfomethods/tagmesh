@@ -1,0 +1,43 @@
+{
+  "name": "tagmesh",
+  "version": "1.0.0",
+  "description": "A library to enable cross-application real-time collaborative tagging and notes",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "type" : "module",
+  "directories": {
+    "doc": "docs"
+  },
+  "dependencies": {
+    "node-gyp": "^10.0.1",
+    "pouchdb": "^7.3.0",
+    "typescript": "^4.7.4"
+  },
+  "devDependencies": {
+    "@types/jest": "^28.1.6",
+    "@types/pouchdb": "^6.4.0",
+    "jest": "^28.1.3",
+    "pouchdb-adapter-memory": "^7.3.0",
+    "ts-jest": "^28.0.7",
+    "tslint": "^6.1.3"
+  },
+  "scripts": {
+    "test": "jest --config jestconfig.json",
+    "build": "tsc",
+    "lint": "tslint -p tsconfig.json"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@gitlab.com/ssadedin/tagmesh.git"
+  },
+  "files": [
+    "lib/**/*"
+  ],
+  "keywords": [],
+  "author": "Simon Sadedin",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://gitlab.com/ssadedin/tagmesh/issues"
+  },
+  "homepage": "https://gitlab.com/ssadedin/tagmesh#readme"
+}

@@ -17,16 +17,18 @@ class Annotation {
     }
 }
 
+type EntryAnnotations = {[key : string] : Annotation}
+
 class Entity {
     
     id : string
 
     name : string
     
-    tags : Map<string, Annotation>
+    tags : EntryAnnotations
     
     constructor(name : string) {
-       this.tags = new Map()
+       this.tags = {}
        this.name = name
        this.id = name
     }
@@ -36,42 +38,38 @@ interface TagRepositoryOptions {
     pouchAdapter : Object
 }
 
+type RepositoryEntries = {[key : string] : Entity}
+
 class TagRepository {
     
     metaDataDocumentId = 'rnadx_metadata__'
 
-    userAnnotations : Map<string,Entity>
+    userAnnotations : RepositoryEntries
     
     pouch : PouchDB.Database
     
-    constructor(options? : TagRepositoryOptions) {
+    constructor(annotations : RepositoryEntries, options? : TagRepositoryOptions) {
         this.pouch = new PouchDB(this.metaDataDocumentId, options?.pouchAdapter || {})
-        this.userAnnotations = new Map()
+        this.userAnnotations = annotations
+    }
+    
+    get(id : string) : Entity {
+        return this.userAnnotations[id] || new Entity(id)
     }
 
-    saveTag(entity: Entity, newTagName: string, newTagNotes: string, color: string) : Entity {
+    saveTag(entityName : string,  tagName: string, newTagNotes: string, color: string) : Entity {
+        
+        let entity : Entity = this.userAnnotations[entityName] || new Entity(entityName)
 
-        if (!entity.tags) {
-            entity.tags = new Map()
+        if (!entity.tags[tagName]) {
+            // Have to convert to plain object here, otherwise indexeddb can't store it
+            // in pouch. How can we make that work?
+            entity.tags[tagName] = {...new Annotation(tagName, newTagNotes, color)}
         }
 
-        if (!entity.tags.has(newTagName)) {
-            entity.tags.set(newTagName,new Annotation(newTagName, newTagNotes, color))
+        if(!this.userAnnotations[entity.id]) {
+            this.userAnnotations[entity.id] = entity
         }
-
-        if(!this.userAnnotations.has(entity.id)) {
-            this.userAnnotations.set(entity.id, entity)
-        }
-
-        //if (typeof (this.userAnnotations[tagItem.gene]) == 'undefined')
-        //    Vue.set(this.userAnnotations, tagItem.gene, {})
-
-        // Vue.set(this.userAnnotations[tagItem.gene], newTagName, {
-        //    tag: newTagName,
-        //    notes: newTagNotes,
-        //    user: this.username,
-        //    color: color.hex || color
-        //})
 
         this.saveEntity(entity.id)
         
@@ -90,7 +88,7 @@ class TagRepository {
             }
 
             doc = {
-                ...this.userAnnotations.get(entityId),
+                ...this.userAnnotations[entityId],
                 ...meta
             }
 
@@ -100,7 +98,7 @@ class TagRepository {
             console.log(e)
             doc = {
                 _id: entityId,
-                ...this.userAnnotations.get(entityId)
+                ...this.userAnnotations[entityId]
             }
         }
         console.log("Sending doc to pouch", doc)
@@ -140,35 +138,47 @@ class TagRepository {
         if (!confirm("Delete tag " + tag.tag + " with notes:\n\n" + tag.notes))
             return
 
-        if(!this.userAnnotations.has(entityId))
+        if(!this.userAnnotations[entityId])
             return
 
-        let entity : Entity = this.userAnnotations.get(entityId)!
+        let entity : Entity = this.userAnnotations[entityId]!
         
-        entity.tags.delete(entityId)
-
-        // Vue.delete(this.userAnnotations[item.gene], tag.tag)
-        // if (Object.keys(this.userAnnotations[item.gene]).length == 0)
-        //    Vue.delete(this.userAnnotations, item.gene)
+        delete entity.tags[entityId]
 
         this.saveEntity(entity.id)
     }
-}
+    
+    async loadState() {
+       
+        let allDocs = await this.pouch.allDocs({
+            include_docs:true
+        })
 
-/*
-class TagRepository {
-    
-    metaDataDocumentId = 'rnadx_metadata__'
+        console.log('Got docs: ', allDocs)
+        
+        let geneRows = 
+            allDocs
+                .rows
+                .filter(doc => doc.id != this.metaDataDocumentId )
+                
+               
 
-    userAnnotations : Map<string,Entity>
-    
-    pouch : PouchDB.Database
-    
-    constructor(options? : TagRepositoryOptions) {
-        this.pouch = new PouchDB(this.metaDataDocumentId, options?.pouchAdapter || {})
-        this.userAnnotations = new Map()
-    }
+        let mapped_annotations = new Map(geneRows.map(row => [row.id, row.doc]))
+        
+        let final_annotations = Object.fromEntries(mapped_annotations.entries())
+        
+        console.log("Final annotations: ", final_annotations)
+        
+        
+        for(var entityId in final_annotations) {
+            
+            let entity = new Entity(entityId)
+            const annoEntity : any = final_annotations[entityId]!
+            entity.name = annoEntity.name
+            entity.tags = annoEntity.tags
+            this.userAnnotations[entityId] = annoEntity
+        }
+      }
 }
-*/
 
 export { TagRepository, Entity, Annotation}

@@ -195,6 +195,8 @@ class TagRepository {
             entity.tags = annoEntity.tags
             this.userAnnotations[entityId] = annoEntity
         }
+        
+        return this;
       }
 }
 

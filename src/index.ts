@@ -132,21 +132,38 @@ class TagRepository {
         console.log("Sending doc to pouch", doc)
         this.pouch.put(doc)
     }
+    
+    clear() {
+        console.log("Clearing all annotations from document")
 
-    removeTag(entityId : string, tag : Annotation) {
+        for(var entityId in this.userAnnotations) {
+            console.log("Remove tags for entity: ", entityId)
+            for(var tag in this.userAnnotations[entityId]?.tags) {
+                this.removeTag(entityId, this.userAnnotations[entityId].tags[tag])
+            }
+        }
+    }
 
-        if (!confirm("Delete tag " + tag.tag + " with notes:\n\n" + tag.notes))
+    removeTag(entityId : string, anno : Annotation) {
+
+        // if (!confirm("Delete tag " + anno.tag + " with notes:\n\n" + anno.notes))
+        //    return
+
+        if(!this.userAnnotations[entityId]) {
+            console.log(`Entity ${entityId} does not have any annotations`)
             return
+        }
 
-        if(!this.userAnnotations[entityId])
-            return
+        console.log(`Removing tag ${anno.tag} from entity ${entityId}`)
 
         let entity : Entity = this.userAnnotations[entityId]!
         
-        delete entity.tags[entityId]
+        delete entity.tags[anno.tag]
 
         this.saveEntity(entity.id)
+
     }
+
     
     async loadState() {
        

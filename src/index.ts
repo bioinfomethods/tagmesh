@@ -209,14 +209,14 @@ class TagRepository {
 
         console.log('Got docs: ', allDocs)
         
-        let geneRows = 
+        let entityRows = 
             allDocs
                 .rows
                 .filter(doc => doc.id != this.metaDataDocumentId )
                 
                
 
-        let mapped_annotations = new Map(geneRows.map(row => [row.id, row.doc]))
+        let mapped_annotations = new Map(entityRows.map(row => [row.id, row.doc]))
         
         let final_annotations = Object.fromEntries(mapped_annotations.entries())
         

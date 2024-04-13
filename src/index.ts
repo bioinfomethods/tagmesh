@@ -40,17 +40,47 @@ interface TagRepositoryOptions {
 
 type RepositoryEntries = {[key : string] : Entity}
 
+async function computeSHA256(message : string) {
+    // Encode the string as a Uint8Array
+    const encoder = new TextEncoder();
+    const data = encoder.encode(message);
+
+    // Compute the hash
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+
+    // Convert bytes to hex string
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    return hashHex;
+}
+
 class TagRepository {
     
-    metaDataDocumentId = 'rnadx_metadata__'
+    static repositorySecretRoot = 'b0afc20ab7fa17da5166d97442208521f3c1238e'
+
+    metaDataDocumentIdRoot = 'tagmesh_metadata__'
+
+    metaDataDocumentId : string
 
     userAnnotations : RepositoryEntries
     
     pouch : PouchDB.Database
     
-    constructor(annotations : RepositoryEntries, options? : TagRepositoryOptions) {
+    constructor(secret_id : string, subject_id : string, annotations : RepositoryEntries, options? : TagRepositoryOptions) {
+        this.metaDataDocumentId = this.metaDataDocumentIdRoot + secret_id
         this.pouch = new PouchDB(this.metaDataDocumentId, options?.pouchAdapter || {})
         this.userAnnotations = annotations
+    }
+    
+    private static async create(subject_id : string, annotations : RepositoryEntries, options? : TagRepositoryOptions) {
+
+        let secret_id = await computeSHA256(TagRepository.repositorySecretRoot + '-' + subject_id)
+
+        let repo = new TagRepository(secret_id, subject_id, annotations, options)
+        
+        await repo.loadState()
+        
+        return repo;
     }
     
     get(id : string) : Entity {

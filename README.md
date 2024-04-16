@@ -18,7 +18,7 @@ Then you can build it as a regular NPM package:
 
 ```
 npm install
-npm run build
+npm run build && npm pack
 ```
 
 To actually use TagMesh, refer to one of the UI support libraries, such as

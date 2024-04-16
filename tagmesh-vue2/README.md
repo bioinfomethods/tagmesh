@@ -30,7 +30,7 @@ in your own application.
 For example, create a basic Vue2 application with:
 
 
-** Initialize the application**
+**Initialize the application**
 
 Adjust the versions of tagmesh as appropriate below:
 
@@ -57,7 +57,7 @@ export default {
 };                                          
 ```
 
-** Create the Tag Repository **
+**Create the Tag Repository **
 
 For a Vue application, make the tag store object be reactive by 
 creating it outside your component and assigning it within your
@@ -67,7 +67,7 @@ the mounted method needs to be async, as the TagRepository
 requires async operations to initialise (potentially)
 remote connections.
 
-```
+```javascript
 <script>
     import { TagRepository } from 'tagmesh'                                      
                                                                                 

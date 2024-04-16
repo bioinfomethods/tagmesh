@@ -91,7 +91,9 @@ class Entity {
     name: string;
     
     /**
-     * 
+     * Type of the entity. Entity types are optional, but when provided will 
+     * (in the future) enable linkage to a schema that can define metadata
+     * about the tags that are assigned and constraints on them.
      */
     type: string|null;
 

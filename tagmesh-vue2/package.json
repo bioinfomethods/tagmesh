@@ -1,0 +1,26 @@
+{
+  "name": "tagmesh-vue2",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "main": "dist/tagmesh-vue2.umd.js",
+  "module": "dist/tagmesh-vue2.es.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.43.1",
+    "@types/node": "^20.12.7",
+    "vite": "^5.2.0"
+  },
+  "dependencies": {
+    "@vitejs/plugin-vue2": "^2.3.1",
+    "tagmesh": "file:../tagmesh-1.0.0.tgz",
+    "vue": "^2.7.16",
+    "vue-template-compiler": "^2.7.16",
+    "weback": "^0.0.1-security",
+    "webpack-cli": "^5.1.4"
+  }
+}

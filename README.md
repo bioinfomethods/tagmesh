@@ -35,6 +35,12 @@ The `server` directory contains a docker-compose file that allows you to run
 a compatible CouchDB server. Once you do this, you can add a call to the
 `TagRepository.connect` function in your client application.
 
+Although in theory you can connect to "vanilla" CouchDB, to achieve a
+practically workable security model, it is better to place Nginx in front
+of CouchDB and proxy requests through. This is also included and configured
+by the provided (https://gitlab.com/ssadedin/tagmesh/-/blob/main/server/docker-compose.yml)[https://gitlab.com/ssadedin/tagmesh/-/blob/main/server/docker-compose.yml?ref_type=heads] file.
+
+
 ### Running the server
 
 To run the server, just run:
@@ -73,8 +79,8 @@ echo -n 'admin:supersecret' | openssl base64
 
 ## CORS
 
-By default, CORS is enabled for all hosts. If you know the location from which
-clients will be connecting, you should edit the file in:
+By default, CORS is enabled within CouchDB for all hosts. If you know the 
+location from which clients will be connecting, you should edit the file in:
 
 ```
 config/pouchdb/10_enable_cors.ini
@@ -83,7 +89,8 @@ config/pouchdb/10_enable_cors.ini
 In there, set the value of `origins` to that host name, or disable it if it
 altogether if it is not needed. Note that because CouchDB interaction does not
 use cookies or default headers, it does not directly expose a CORS risk in the
-same way that regular session based authentication.
+same way that regular session based authentication would. Nonetheless, it is
+best practice to restrict the origins of requests if you can.
 
 ### Client setup
 

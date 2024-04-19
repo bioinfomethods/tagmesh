@@ -45,7 +45,7 @@
 
 map $request_method $auth_header {
     default $http_authorization;
-    PUT "Basic ${COUCHDB_ADMIN_PASSWORD_ENC}";
+    PUT "Basic ${COUCHDB_PASSWORD_ENC}";
 }
 
 server {

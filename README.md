@@ -38,7 +38,7 @@ a compatible CouchDB server. Once you do this, you can add a call to the
 Although in theory you can connect to "vanilla" CouchDB, to achieve a
 practically workable security model, it is better to place Nginx in front
 of CouchDB and proxy requests through. This is also included and configured
-by the provided (https://gitlab.com/ssadedin/tagmesh/-/blob/main/server/docker-compose.yml)[https://gitlab.com/ssadedin/tagmesh/-/blob/main/server/docker-compose.yml?ref_type=heads] file.
+by the provided [docker-compose.yml](https://gitlab.com/ssadedin/tagmesh/-/blob/main/server/docker-compose.yml) file.
 
 
 ### Running the server

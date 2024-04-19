@@ -1,0 +1,32 @@
+version: '2'
+services:
+  couchdb:
+    image: couchdb:3.3.3
+    environment:
+      - COUCHDB_USER=admin
+      - COUCHDB_PASSWORD=${COUCHDB_ADMIN_PASSWORD:-couchdb}
+      - COUCHDB_PASSWORD_ENC=${COUCHDB_ADMIN_PASSWORD_ENC:-YWRtaW46Y291Y2hkYg==}
+    ports:
+      - '5984:5984'
+      - '4369:4369'
+      - '9100:9100'
+    volumes:
+      - couchdb_data:/opt/couchdb/data
+      - ./config/pouchdb:/opt/couchdb/etc/local.d
+
+  http:
+      image: "nginx:1.25"
+   
+      ports:
+        - "${SERVICE_PORT:-5288}:80"
+      volumes:
+        - ./config/nginx:/etc/nginx/templates
+        - ./config/nginx:/etc/nginx/auth
+
+      depends_on: 
+        - couchdb
+    
+volumes:
+  couchdb_data:
+    driver: local
+

@@ -182,6 +182,11 @@ class TagRepository {
      */
     pouch : PouchDB.Database
     
+    
+    couch : PouchDB.Database | null
+    
+    connected : boolean
+    
     /**
      * Internal constructor used to create a TagRepository.
      * 
@@ -199,6 +204,8 @@ class TagRepository {
             console.warn("TagRepository secret is set to the default publicly known value. Please set this to a secret value to ensure your application is secure\n" +
                           "by adding TagRepository.repositorySecretRoot='<an actual secret>' to your application code")
         }
+        this.couch = null
+        this.connected = false
     }
     
     /**
@@ -394,9 +401,7 @@ class TagRepository {
                 .filter(doc => doc.id != this.metaDataDocumentId )
 
         let mapped_annotations = new Map(entityRows.map(row => [row.id.split(':')[1], row.doc]))
-        
         let final_annotations = Object.fromEntries(mapped_annotations.entries())
-        
         console.log("Final annotations: ", final_annotations)
         
         for(var entityId in final_annotations) {
@@ -410,6 +415,29 @@ class TagRepository {
         
         return this;
       }
+      
+    async connect(pouchBaseURL : string, username : string, password : string) {
+        
+        let dbURL = pouchBaseURL + '/' + this.metaDataDocumentId
+
+        console.log("Connecting to server " + dbURL)
+        this.couch = new PouchDB(dbURL, { auth: { "username":  username, "password": password} })
+        
+        await this.pouch.replicate.from(this.couch).on('complete', () => {
+
+            console.log("Couchdb replicate complete")
+            this.loadState()
+            this.connected = true
+            
+            let sync = PouchDB.sync(this.pouch, this.couch!, {live: true, retry: true})
+            sync.on('change', () => {
+                console.log("Couchdb sync complete")
+                this.loadState()
+            })
+        })
+        
+        console.log("Connected to server " + pouchBaseURL)
+    }
 }
 
 export { TagRepository, Entity, Annotation }

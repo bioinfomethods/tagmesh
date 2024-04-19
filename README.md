@@ -24,4 +24,88 @@ npm run build && npm pack
 To actually use TagMesh, refer to one of the UI support libraries, such as
 [tagmesh-vue2](tagmesh-vue2).
 
+## TagMesh Server
+
+While TagMesh works when used only as a client library, this then causes your
+tags and annotations to be stored only in the user's browser local storage. To
+enable persistent storage, they must be connected via Couch replication 
+to an online CouchDB database.
+
+The `server` directory contains a docker-compose file that allows you to run
+a compatible CouchDB server. Once you do this, you can add a call to the
+`TagRepository.connect` function in your client application.
+
+### Running the server
+
+To run the server, just run:
+
+```
+cd server
+docker-compose up -d
+```
+
+Check the logs:
+
+```
+docker-compose logs --follow
+```
+
+### Setting admin password
+
+The default setup uses user `admin` and a default password of 
+of `couchdb`.  **You must change this yourself to have a 
+secure configuration!**. To do this, create a
+`.env` file with values for the admin password and its
+base64 encoded form. For example:
+
+```bash
+COUCHDB_ADMIN_PASSWORD=supersecret
+COUCHDB_ADMIN_PASSWORD_ENC=YWRtaW46c3VwZXJzZWNyZXQ=
+```
+
+The encoded form should be exactly as is required when the password is passed
+in Basic authorization in the HTTP Authorization header. An example of calculating
+the value for the password `supersecret` is:
+
+```
+echo -n 'admin:supersecret' | openssl base64
+```
+
+## CORS
+
+By default, CORS is enabled for all hosts. If you know the location from which
+clients will be connecting, you should edit the file in:
+
+```
+config/pouchdb/10_enable_cors.ini
+```
+
+In there, set the value of `origins` to that host name, or disable it if it
+altogether if it is not needed. Note that because CouchDB interaction does not
+use cookies or default headers, it does not directly expose a CORS risk in the
+same way that regular session based authentication.
+
+### Client setup
+
+The Nginx configuration places all CouchDB paths under a top level path of `/db`
+which allows you to then map other paths separately, for example, to serve your
+web pages or connect to other application features. This means that in your
+client application, you should pass in a CouchDB URL looking something like
+`http://<your server>:5288/db`.
+
+The default security model is to use native built in CouchDB users. This requires
+you to set up all users who may access the database and their passwords
+inside the database. You might do this, for example, using the CouchDB admin tool,
+or using `curl` to put users into the database.
+
+Then, your client will connect to the database using code such as:
+
+```
+    async connectTagMesh() {
+      let tags = await TagRepository.create(this.subject, this.tag_source)
+      const couchURL = 'http://localhost:5288/db',
+      tags.connect(couchURL, "john","password")
+      return tags
+    }
+```
 

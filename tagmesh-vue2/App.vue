@@ -64,12 +64,16 @@ export default {
     
     async mounted() {
       this.tags = await TagRepository.create(this.subject, this.tag_source)
+      if(this.pouchBaseURL)
+          this.tags.connect(this.pouchBaseURL, "john","password")
     },
     
     watch: {
         async subject() {
           this.tag_source = {}
           this.tags = await TagRepository.create(this.subject, this.tag_source)
+          if(this.pouchBaseURL)
+              this.tags.connect(this.pouchBaseURL, "john","password")
         }
     },
     
@@ -81,6 +85,7 @@ export default {
     },
     
     data() { return {
+            pouchBaseURL : null, // 'http://localhost:5288/db',
             subject: '10W000001',
             tag_source: {},
             tags: null,

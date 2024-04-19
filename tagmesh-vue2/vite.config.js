@@ -30,6 +30,17 @@ export default {
         }
       }
     }
+  } ,
+  
+  server: {
+    proxy: {
+      // Using "^/db" to match all requests starting with "/db"
+      '^/tagmesh_': {
+        target: 'http://localhost:5173', // Proxy target
+        changeOrigin: true,
+        rewrite: path => path.replace(/^\/db/, '') // Rewrite the path to remove "/db"
+      }
+    }
   }  
 };
 

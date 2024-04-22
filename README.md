@@ -83,7 +83,7 @@ By default, CORS is enabled within CouchDB for all hosts. If you know the
 location from which clients will be connecting, you should edit the file in:
 
 ```
-config/pouchdb/10_enable_cors.ini
+config/pouchdb/docker.ini
 ```
 
 In there, set the value of `origins` to that host name, or disable it if it

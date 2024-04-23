@@ -23,6 +23,10 @@
         <button @click="clear">Clear</button>
         </p>
         <hr>
+        
+        <div>
+            <TagMeshLoginDialog :tags="tags"></TagMeshLoginDialog>
+        </div>
     </div>
 </template>
 
@@ -49,28 +53,34 @@ table th, table td {
 import { TagRepository } from 'tagmesh'
 
 import AnnotationEditor from './AnnotationEditor.vue'
+import TagMeshLoginDialog from './TagMeshLoginDialog.vue'
 
 export default {
     components: {
-        AnnotationEditor
-    },
+    AnnotationEditor,
+    TagMeshLoginDialog
+},
     
     async mounted() {
       this.tags = await TagRepository.create(this.subject, this.tag_source)
-      if(this.pouchBaseURL)
-          this.tags.connect(this.pouchBaseURL, "john","password")
+      this.createRepository()
     },
     
     watch: {
         async subject() {
           this.tag_source = {}
-          this.tags = await TagRepository.create(this.subject, this.tag_source)
-          if(this.pouchBaseURL)
-              this.tags.connect(this.pouchBaseURL, "john","password")
+          this.createRepository()
         }
     },
     
     methods: {
+        
+        async createRepository() {
+          this.tags = await TagRepository.create(this.subject, this.tag_source, { serverURL: this.pouchBaseURL })
+          //if(this.pouchBaseURL)
+          //    this.tags.connect(this.pouchBaseURL, "john","password")
+        },
+        
         clear() {
             console.log("Clearing annotations")
             this.tags.clear()
@@ -78,7 +88,8 @@ export default {
     },
     
     data() { return {
-            pouchBaseURL : null, // 'http://localhost:5288/db',
+            pouchBaseURL : 'http://localhost:5288/db',
+            // pouchBaseURL : 'http://localhost:5984',
             subject: '10W000001',
             tag_source: {},
             tags: null,

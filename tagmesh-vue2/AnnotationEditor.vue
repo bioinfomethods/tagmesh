@@ -39,7 +39,7 @@
           
           <footer class="modal-footer">
             <button @click="saveData">Save</button>
-            <button @click="showModal = false">Cancel</button>
+            <button @click="hideDialog">Cancel</button>
             <button @click="removeEditedAnnotation()">Remove Tag</button>
           </footer>
         </div>
@@ -159,6 +159,9 @@ export default {
   name: 'AnnotationEditor',
   
   props: ['tags', 'entity', 'type'],
+  
+  components: {
+  },
 
   data() {
     return {
@@ -174,8 +177,22 @@ export default {
   methods: {
       showDialog() {
          this.showModal = true         
+         document.addEventListener('keydown', this.handleEscape);
          this.$nextTick(() => this.$refs.tagName.focus())
       },
+      
+      hideDialog() {
+          this.showModal = false;
+
+          // Clean up the global key listener
+          document.removeEventListener('keydown', this.handleEscape);
+      },      
+      
+      handleEscape(e) {
+        if (e.key === 'Escape') {
+            this.hideDialog();
+        }
+      },      
       
       editAnnotation(entityId, tag) {
           Vue.set(this.editedAnnotation, 'tag', tag.tag)
@@ -200,7 +217,11 @@ export default {
             data.type = this.type
         this.tags.saveTag(data)
         
-        this.showModal = false;
+        this.hideDialog()
+      },
+      
+      destroyed() {
+        document.removeEventListener('keydown', this.handleEscape);
       }
   }
 }

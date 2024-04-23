@@ -218,6 +218,7 @@ class TagRepository {
         this.pouch = new PouchDB(this.metaDataDocumentId, options?.pouchAdapter || {})
         this.userAnnotations = annotations
         this.subject_id = subject_id
+        this.serverURL = options?.serverURL || null
         
         if(TagRepository.repositorySecretRoot == 'set_me_to_a_secret') {
             console.warn("TagRepository secret is set to the default publicly known value. Please set this to a secret value to ensure your application is secure\n" +

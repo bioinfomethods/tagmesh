@@ -119,8 +119,20 @@ class Entity {
 }
 
 
+/**
+ * Options to configure the tag repository
+ */
 interface TagRepositoryOptions {
-    pouchAdapter : Object
+    /** 
+     * Passed through to PouchDB constructor as configuration options
+     */
+    pouchAdapter : Object | null,
+
+    /** 
+     * URL of couchdb server. For access through the bundled Ngnix server,
+     * use the address of server + '/db'
+     */
+    serverURL : string | null
 }
 
 type RepositoryEntities = {[key : string] : Entity}
@@ -178,11 +190,18 @@ class TagRepository {
     userAnnotations : RepositoryEntities
     
     /** 
+     * The URL of the server to which this TagRepository will attempt to connect
+     */
+    serverURL : string | null
+    
+    /** 
      * Internal PouchDB database used to store entities
      */
     pouch : PouchDB.Database
     
-    
+    /**
+     * Remote couch db database if one is connected
+     */
     couch : PouchDB.Database | null
     
     connected : boolean

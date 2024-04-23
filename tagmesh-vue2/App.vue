@@ -31,23 +31,16 @@ body {
     font-family: arial;
 }
 
-/* Style for the entire table */
 table {
     border-collapse: collapse; /* Ensures borders between cells are merged */
     width: 100%; /* Makes the table full width of its container */
     margin-top: 1em;
 }
 
-/* Style for each cell (td) and header cell (th) */
 table th, table td {
     border: 1px solid #444; /* Sets the border for each cell */
     text-align: left; /* Aligns text to the left in each cell */
     padding: 3px; /* Sets padding inside each cell */
-}
-
-/* Style for each table row */
-table tr {
-    /* You can add styles for rows here if needed */
 }
 
 </style>

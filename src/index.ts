@@ -44,6 +44,33 @@ async function computeSHA256(message : string) {
     return hashHex;
 }
 
+class Tag {
+    
+    name : string
+    
+    color: string
+
+    constructor(name: string, color: string) {
+        this.name = name
+        this.color =color
+    }
+}
+
+/** 
+ *  the identity of a participant that creates of modifies tags
+ */
+class User {
+   
+   username : string
+   
+   email : string 
+   
+   constructor(username : string, email :string) {
+     this.username = username
+     this.email = email
+   }
+}
+
 /** 
  * Represents a tag and associated tag metadata such as notes and color to 
  * display
@@ -53,16 +80,30 @@ class Annotation {
     /**
      * Name of the tag
      */
-    tag : string
+    tagDefinition : Tag
     
+    /**
+     * Notes associated with this annotation
+     */
     notes : string
     
-    color: string
+    /** 
+     * Username of user who creted this annotation
+     */
+    username : string | null
     
-    constructor(tag: string, notes: string, color: string) {
-        this.tag = tag
+    get tag() : string {
+        return this.tagDefinition.name
+    }
+    
+    get color() : string {
+        return this.tagDefinition.color
+    }
+
+    constructor(tag: string, notes: string, color: string, username: string | null) {
+        this.tagDefinition = new Tag(tag, color)
         this.notes = notes
-        this.color = color
+        this.username = username
     }
 }
 
@@ -204,6 +245,16 @@ class TagRepository {
      */
     couch : PouchDB.Database | null
     
+    
+    /** 
+     * User who was authenticated. Null until successful authentiction 
+     * with `connect` method.
+     */
+    user : User | null
+    
+    /** 
+     * Set to true if currently connected to a remote CouchDB instance
+     */
     connected : boolean
     
     /**
@@ -226,6 +277,7 @@ class TagRepository {
         }
         this.couch = null
         this.connected = false
+        this.user = null
     }
     
     /**
@@ -278,7 +330,8 @@ class TagRepository {
         if (!entity.tags[tag]) {
             // Have to convert to plain object here, otherwise indexeddb can't store it
             // in pouch. How can we make that work?
-            entity.tags[tag] = {...new Annotation(tag, notes, color)}
+            entity.tags[tag] = {...new Annotation(tag, notes, color, this.user?.username||null), tag: tag, color: color} // have to explicitly add tag prop to make TS happy
+
         }
         else {
             Object.assign(entity.tags[tag], {tag: tag, notes: notes, color: color, type: type} )
@@ -436,10 +489,14 @@ class TagRepository {
         return this;
       }
       
-    async connect(pouchBaseURL : string, username : string, password : string) {
+      
+    /**  
+     *  Connects to remote CouchDB repository with given username and password
+     */
+    async connect(couchBaseURL : string, username : string, password : string) {
         
-        let dbURL = pouchBaseURL + '/' + this.metaDataDocumentId
-
+        let dbURL = couchBaseURL + '/' + this.metaDataDocumentId
+        
         console.log("Connecting to server " + dbURL)
         this.couch = new PouchDB(dbURL, { auth: { "username":  username, "password": password} })
         
@@ -448,6 +505,10 @@ class TagRepository {
             console.log("Couchdb replicate complete")
             this.loadState()
             this.connected = true
+
+            // TODO: once connected, we need to look up the user from the Couch database to get
+            // their real user object. For now, fake it with unknown email address.
+            this.user = new User(username, "Unknown")
             
             let sync = PouchDB.sync(this.pouch, this.couch!, {live: true, retry: true})
             sync.on('change', () => {
@@ -456,7 +517,7 @@ class TagRepository {
             })
         })
         
-        console.log("Connected to server " + pouchBaseURL)
+        console.log("Connected to server " + couchBaseURL)
     }
 }
 

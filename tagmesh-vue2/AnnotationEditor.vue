@@ -17,8 +17,14 @@
         <div class="modal-container">
           
           <header class="modal-header">
+              
+          <div class="avatar-outer" v-if="tags.user">
+              <div class="avatar">{{ initials }}</div>
+          </div>
+               
             <!-- Slot for custom title -->
             <h3><slot name="title">Edit Annotation for <span v-if="type">{{  type }}</span> {{ entity }} ({{ tags.subject_id }})</slot></h3>
+           
           </header>
 
           <div class="modal-body">
@@ -49,6 +55,14 @@
 </template>
 
 <style scoped>
+
+.avatar-outer {
+    float: right;
+    position: relative;
+    top: -9px;
+    left: 9px;
+}
+
 .modal-mask {
   position: fixed;
   top: 0;
@@ -85,8 +99,12 @@
   justify-content: flex-end;
 }
 
-label, input {
-    margin: 0.5em 0.5em;
+label, input, textarea {
+    margin: 0.5em 0.4em;
+}
+
+label {
+    font-weight: 550;
 }
 
 form {
@@ -120,7 +138,7 @@ input, textarea {
 
 textarea {
     height: 6em;
-    width: 20em;
+    width: 25em;
 }
 
 h3 {
@@ -141,11 +159,27 @@ h3 {
     font-size: 75%;
     margin: 3px;
     cursor: pointer;
-    
 }
 
 .tagmesh-add-annotation {
     font-size: 9px;
+}
+
+.avatar {
+    background-color: #34a;
+    text-align: center;
+    border-radius: 15px;
+    height: 36px; 
+    width: 36px;
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    
+    display: flex; /* Enables the use of Flexbox inside the avatar */
+    justify-content: center; /* Centers content horizontally */
+    align-items: center; /* Centers content vertically */
+    border-radius: 50%; /* Makes the div circular  */
+    
 }
 </style>
 
@@ -172,6 +206,17 @@ export default {
         notes: ''
       },
     };
+  },
+  
+  computed: {
+      initials() {
+           let parts = tags.user.username.split('.')
+
+           if(parts.length<2)
+               return  parts[0][0].toUpperCase() + parts[0][1].toUpperCase()
+           else
+               return parts[0][0].toUpperCase() + parts[parts.length-1][0].toUpperCase()
+      }  
   },
 
   methods: {

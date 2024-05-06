@@ -54,6 +54,13 @@ class Tag {
         this.name = name
         this.color =color
     }
+    
+    toJSON() {
+      return {
+        id: this.name,
+        name: this.color,
+      }
+  };
 }
 
 /** 
@@ -70,6 +77,8 @@ class User {
      this.email = email
    }
 }
+
+
 
 /** 
  * Represents a tag and associated tag metadata such as notes and color to 
@@ -100,8 +109,8 @@ class Annotation {
         return this.tagDefinition.color
     }
 
-    constructor(tag: string, notes: string, color: string, username: string | null) {
-        this.tagDefinition = new Tag(tag, color)
+    constructor(tag : Tag, notes: string, username: string | null) {
+        this.tagDefinition = tag
         this.notes = notes
         this.username = username
     }
@@ -178,6 +187,8 @@ interface TagRepositoryOptions {
 
 type RepositoryEntities = {[key : string] : Entity}
 
+type TagDefinitions = {[key : string] : Tag}
+
 
 /**
  * The main class for interfacing with tag mesh from end user code.
@@ -245,6 +256,15 @@ class TagRepository {
      */
     couch : PouchDB.Database | null
     
+    /** 
+     * The database where cross-patient schema information is stored
+     */
+    schema_db : PouchDB.Database
+
+    /** 
+     * Remote database where cross-patient schema information is stored
+     */
+    schema_db_couch : PouchDB.Database | null
     
     /** 
      * User who was authenticated. Null until successful authentiction 
@@ -256,6 +276,11 @@ class TagRepository {
      * Set to true if currently connected to a remote CouchDB instance
      */
     connected : boolean
+    
+    /** 
+     * Definitions for tags known for this database
+     */
+    tagDefinitions : TagDefinitions
     
     /**
      * Internal constructor used to create a TagRepository.
@@ -278,6 +303,11 @@ class TagRepository {
         this.couch = null
         this.connected = false
         this.user = null
+        this.tagDefinitions = {}
+
+        // The schema database which spans all patients in this context
+        this.schema_db = new PouchDB(TagRepository.metaDataDocumentIdRoot + '__schema', {})
+        this.schema_db_couch = null
     }
     
     /**
@@ -315,6 +345,31 @@ class TagRepository {
     get(id : string) : Entity {
         return this.userAnnotations[id] || new Entity(id)
     }
+    
+    async getOrCreateTag(name : string, color : string) : Promise<Tag> {
+        
+        if(name in this.tagDefinitions)
+            return this.tagDefinitions[name] as Tag
+            
+            
+       
+        let tag_doc = await this.schema_db.get('tag_definitions') as { [key : string]: any}
+        
+        if('tags' in tag_doc) {
+            let tagObj : { [key : string]: any} = tag_doc.tags  as object
+            
+            if(tagObj[name]) {
+                return tagObj[name] as Tag
+            }
+            
+            const newTag = new Tag(name, color)
+            this.tagDefinitions[name]  = newTag
+            tagObj[name] = { name: newTag.name, color: newTag.color }
+        }
+        console.log("Save new tags document", tag_doc)
+        this.schema_db.put(tag_doc)
+        return new Tag(name, color)
+    }
 
     /**
      * Save a new tag for the given entity
@@ -324,17 +379,19 @@ class TagRepository {
         
         let entity : Entity = this.get(entityName)
         
+        let tagDef = await this.getOrCreateTag(tag, color)
+        
         if(type)
             entity.type = type
 
         if (!entity.tags[tag]) {
             // Have to convert to plain object here, otherwise indexeddb can't store it
             // in pouch. How can we make that work?
-            entity.tags[tag] = {...new Annotation(tag, notes, color, this.user?.username||null), tag: tag, color: color} // have to explicitly add tag prop to make TS happy
+            entity.tags[tag] = {...new Annotation(tagDef, notes, this.user?.username||null), tag: tagDef.name, color: tagDef.color} // have to explicitly add tag prop to make TS happy
 
         }
         else {
-            Object.assign(entity.tags[tag], {tag: tag, notes: notes, color: color, type: type} )
+            Object.assign(entity.tags[tag], {tag: tagDef.name, notes: notes, color: tagDef.color, type: type} )
         }
 
         if(!this.userAnnotations[entity.id]) {
@@ -366,7 +423,7 @@ class TagRepository {
             }
 
             doc = {
-                ...this.userAnnotations[entityId],
+                ...JSON.parse(JSON.stringify(this.userAnnotations[entityId])),
                 ...meta
             }
 
@@ -376,7 +433,7 @@ class TagRepository {
             console.log(e)
             doc = {
                 _id: entityKey,
-                ...this.userAnnotations[entityId]
+                ...JSON.parse(JSON.stringify(this.userAnnotations[entityId])),
             }
         }
         console.log("Sending doc to pouch", doc)
@@ -409,7 +466,7 @@ class TagRepository {
         }
         console.log("Sending doc to pouch", doc)
         this.pouch.put(doc)
-    }
+   }
     
     /** 
      * Remove all tags from this repository.
@@ -461,6 +518,33 @@ class TagRepository {
      * when the TagRepository is created.
      */
     async loadState() : Promise<TagRepository> {
+        
+        let tagDefDoc = null
+        const tagDefDocKey = 'tag_definitions'
+        
+        try {
+           tagDefDoc = await this.schema_db.get(tagDefDocKey)
+        }
+        catch(e) {
+            
+            let ee = e as Error
+            
+            if(ee.name != 'not_found')
+                throw e
+            
+            console.log("Creating new tag schema doc")
+            tagDefDoc = {
+                _id : tagDefDocKey,
+                tags : this.tagDefinitions
+            }
+            this.schema_db.put(tagDefDoc!)
+        }
+        
+        console.log("Loaded tag def doc:", tagDefDoc)
+        
+        if('tags' in tagDefDoc)
+            this.tagDefinitions = tagDefDoc.tags! as TagDefinitions
+        
        
         let allDocs = await this.pouch.allDocs({
             include_docs:true
@@ -495,8 +579,24 @@ class TagRepository {
      */
     async connect(couchBaseURL : string, username : string, password : string) {
         
+        // First connect schema db url
+        let schemaDBURL = couchBaseURL + '/' + TagRepository.metaDataDocumentIdRoot + '__schema'
+        this.schema_db_couch = new PouchDB(schemaDBURL, { auth: { "username":  username, "password": password} })
+        this.schema_db.replicate.from(this.schema_db_couch).on('complete', () => {
+
+            console.log("Couchdb schema replication complete")
+            this.loadState()
+
+            let sync = PouchDB.sync(this.schema_db, this.schema_db_couch!, {live: true, retry: true})
+            sync.on('change', () => {
+                console.log("Couchdb schema sync complete")
+                this.loadState()
+            })
+        })
+
+
+        // Then connect / replicate the main database
         let dbURL = couchBaseURL + '/' + this.metaDataDocumentId
-        
         console.log("Connecting to server " + dbURL)
         this.couch = new PouchDB(dbURL, { auth: { "username":  username, "password": password} })
         

@@ -1,5 +1,5 @@
 {
   "watch": ["src/"],
   "ext": "js,ts,jsx,tsx",
-  "exec": "npm run build && npm pack && cd tagmesh-vue2 && npm install ../tagmesh-1.0.0.tgz && ps -efa | grep vite | grep -v grep | awk ' { print $2 }' | xargs kill && npm run dev"
+  "exec": "npm run build && npm pack && cd tagmesh-vue3 && npm install ../tagmesh-1.0.0.tgz && ps -efa | grep vite | grep -v grep | awk ' { print $2 }' | xargs kill && npm run dev"
 }

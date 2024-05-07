@@ -226,61 +226,66 @@ class TagRepository {
      * 
      * This is created from a salted hash of subject id and the metaDataDocumentIdRoot
      */
-    metaDataDocumentId : string
+    metaDataDocumentId! : string
     
     /** 
      * Prefix added to entities within this tag repository to ensure they are
      * unique to the subject
      */
-    subject_id : string
+    subject_id! : string
 
     /**
      * All the annotations in the repository
      * 
      * This is a dictionary object where keys are entity ids and values are entities
      */
-    userAnnotations : RepositoryEntities
+    userAnnotations! : RepositoryEntities
     
     /** 
      * The URL of the server to which this TagRepository will attempt to connect
      */
-    serverURL : string | null
+    serverURL : string | null = null
     
     /** 
      * Internal PouchDB database used to store entities
      */
-    pouch : PouchDB.Database
+    pouch! : PouchDB.Database
     
     /**
      * Remote couch db database if one is connected
      */
-    couch : PouchDB.Database | null
+    couch : PouchDB.Database | null = null
     
     /** 
      * The database where cross-patient schema information is stored
      */
-    schema_db : PouchDB.Database
+    schema_db! : PouchDB.Database
 
     /** 
      * Remote database where cross-patient schema information is stored
      */
-    schema_db_couch : PouchDB.Database | null
+    schema_db_couch : PouchDB.Database | null = null
     
     /** 
      * User who was authenticated. Null until successful authentiction 
      * with `connect` method.
      */
-    user : User | null
+    user : User | null = null
     
     /** 
      * Set to true if currently connected to a remote CouchDB instance
      */
-    connected : boolean
+    connected : boolean = false
     
     /** 
      * Definitions for tags known for this database
      */
-    tagDefinitions : TagDefinitions
+    tagDefinitions! : TagDefinitions
+    
+    /**
+     * Options that are passed through to PouchDB
+     */
+    options : TagRepositoryOptions | null
     
     /**
      * Internal constructor used to create a TagRepository.
@@ -290,24 +295,47 @@ class TagRepository {
      * secure document ids
      */
     constructor(secret_id : string, subject_id : string, annotations : RepositoryEntities, options? : TagRepositoryOptions) {
-        this.metaDataDocumentId = TagRepository.metaDataDocumentIdRoot + secret_id
-        this.pouch = new PouchDB(this.metaDataDocumentId, options?.pouchAdapter || {})
-        this.userAnnotations = annotations
-        this.subject_id = subject_id
-        this.serverURL = options?.serverURL || null
         
         if(TagRepository.repositorySecretRoot == 'set_me_to_a_secret') {
             console.warn("TagRepository secret is set to the default publicly known value. Please set this to a secret value to ensure your application is secure\n" +
                           "by adding TagRepository.repositorySecretRoot='<an actual secret>' to your application code")
         }
-        this.couch = null
+        this.options = options!
         this.connected = false
+        this.init(secret_id, subject_id, annotations)
+    }
+
+    /**
+     * Reset state for the given subject, using give object to store annotations for that subject
+     */
+    private init(secret_id : string, subject_id : string, annotations : RepositoryEntities) {
+        this.subject_id = subject_id
+        this.metaDataDocumentId = TagRepository.metaDataDocumentIdRoot + secret_id
+        this.pouch = new PouchDB(this.metaDataDocumentId, this.options?.pouchAdapter || {})
+        this.userAnnotations = annotations
+        this.serverURL = this.options?.serverURL || null
+        
+        this.couch = null
         this.user = null
         this.tagDefinitions = {}
 
         // The schema database which spans all patients in this context
         this.schema_db = new PouchDB(TagRepository.metaDataDocumentIdRoot + '__schema', {})
         this.schema_db_couch = null
+    }
+    
+    /**
+     * Switch the current subject of annotations to a different one, using the given object as
+     * the annotation store
+     */
+    async changeSubject(subject_id : string, annotations : RepositoryEntities, username : string, password : string) {
+        let secret_id = await computeSHA256(TagRepository.repositorySecretRoot + '-' + subject_id)
+        this.init(secret_id, subject_id, annotations)
+        
+        await this.loadState()
+
+        if(this.serverURL!=null)
+            this.connect(this.serverURL, username, password)
     }
     
     /**
@@ -582,17 +610,20 @@ class TagRepository {
         // First connect schema db url
         let schemaDBURL = couchBaseURL + '/' + TagRepository.metaDataDocumentIdRoot + '__schema'
         this.schema_db_couch = new PouchDB(schemaDBURL, { auth: { "username":  username, "password": password} })
-        this.schema_db.replicate.from(this.schema_db_couch).on('complete', () => {
-
-            console.log("Couchdb schema replication complete")
-            this.loadState()
-
-            let sync = PouchDB.sync(this.schema_db, this.schema_db_couch!, {live: true, retry: true})
-            sync.on('change', () => {
-                console.log("Couchdb schema sync complete")
+        this.schema_db.replicate.from(this.schema_db_couch)
+            .on('complete', () => {
+                console.log("Couchdb schema replication complete")
                 this.loadState()
+
+                let sync = PouchDB.sync(this.schema_db, this.schema_db_couch!, {live: true, retry: true})
+                sync.on('change', () => {
+                    console.log("Couchdb schema sync complete")
+                    this.loadState()
+                })
             })
-        })
+            .on('error', () => {
+                this.connected = false
+            })
 
 
         // Then connect / replicate the main database

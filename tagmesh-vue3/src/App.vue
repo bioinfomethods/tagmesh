@@ -25,7 +25,7 @@
         <hr>
         
         <div>
-            <TagMeshLoginDialog :tags="tags as TagRepository"></TagMeshLoginDialog>
+            <TagMeshLoginDialog ref="loginDialog" :tags="tags as TagRepository"></TagMeshLoginDialog>
         </div>
     </div>
 </template>
@@ -52,11 +52,9 @@ table th, table td {
 <script lang="ts" setup>
 
 import { TagRepository } from 'tagmesh'
-
 import AnnotationEditor from './components/AnnotationEditor.vue'
 import TagMeshLoginDialog from './components/TagMeshLoginDialog.vue'
-import { onMounted, reactive, ref } from 'vue'
-
+import { onMounted, reactive, ref, watch } from 'vue'
 
 declare global {
     interface Window {
@@ -64,29 +62,61 @@ declare global {
     }
 }
 
-
+/**
+ * Data
+ */
 let pouchBaseURL = ref('http://localhost:5288/db')
 let subject = ref('10W000001')
 let tag_source = reactive({})
 let tags = ref<TagRepository|null>(null)
-
 let test_data = reactive(
     [
-            { gene: 'SCN5A', chr: 'chr1', pos: 12324223, ref: 'A', alt: 'T' },
-            { gene: 'DVL1', chr: 'chr1', pos: 12324223, ref: 'G', alt: 'TA' },
-            { gene: 'DMD', chr: 'chrX', pos: 2324223, ref: 'C', alt: 'G' },
+        { gene: 'SCN5A', chr: 'chr1', pos: 12324223, ref: 'A', alt: 'T' },
+        { gene: 'DVL1', chr: 'chr1', pos: 12324223, ref: 'G', alt: 'TA' },
+        { gene: 'DMD', chr: 'chrX', pos: 2324223, ref: 'C', alt: 'G' },
     ]
 )
 
+interface TagMeshLoginDialog {
+    username : string
+    password : string
+}
+
+/**
+ * Refs
+ */
+const loginDialog = ref<TagMeshLoginDialog|null>(null)
+
+/**
+ * Hooks
+ */
 onMounted( async () => {
-      tags.value = await TagRepository.create(subject.value, tag_source)
+      TagRepository.repositorySecretRoot = 'test-app-1'
       createRepository()
 })
 
+watch(subject, (_, newValue) => {
+    console.log('subject updated to: ', newValue)
+    
+    tag_source = reactive({})
+    
+    const repo : TagRepository = tags.value! as TagRepository
+
+    repo.changeSubject(subject.value, tag_source, loginDialog.value!.username, loginDialog.value!.password)
+   
+    // createRepository()
+})
+
+
+/**
+ * Methods
+ */
 async function createRepository() {
-  tags.value = 
-      await TagRepository.create(subject.value, tag_source, 
-        { serverURL: pouchBaseURL.value, pouchAdapter: null })
+    
+  let newRepo = 
+      await TagRepository.create(subject.value, tag_source, { serverURL: pouchBaseURL.value, pouchAdapter: null })
+
+  tags.value = newRepo
         
   window.tags = tags.value
 }
@@ -95,56 +125,4 @@ function clear() {
     console.log("Clearing annotations")
     tags.value?.clear()
 }
-
-/*
-export default defineComponent({
-    components: {
-    AnnotationEditor,
-    TagMeshLoginDialog
-},
-    
-    async mounted() {
-      this.tags = await TagRepository.create(this.subject, this.tag_source)
-      this.createRepository()
-    },
-    
-    watch: {
-        async subject() {
-          this.tag_source = {}
-          this.createRepository()
-        }
-    },
-    
-    methods: {
-        
-        async createRepository() {
-          this.tags = await TagRepository.create(this.subject, this.tag_source, { serverURL: this.pouchBaseURL })
-          
-          window.tags = this.tags
-          //if(this.pouchBaseURL)
-          //    this.tags.connect(this.pouchBaseURL, "john","password")
-        },
-        
-        clear() {
-            console.log("Clearing annotations")
-            this.tags.clear()
-        }
-    },
-    
-    data() { return {
-            pouchBaseURL : 'http://localhost:5288/db',
-            // pouchBaseURL : 'http://localhost:5984',
-            subject: '10W000001',
-            tag_source: {},
-            tags: null,
-            test_data: [
-                { gene: 'SCN5A', chr: 'chr1', pos: 12324223, ref: 'A', alt: 'T' },
-                { gene: 'DVL1', chr: 'chr1', pos: 12324223, ref: 'G', alt: 'TA' },
-                { gene: 'DMD', chr: 'chrX', pos: 2324223, ref: 'C', alt: 'G' },
-            ]
-        }
-    }
-})
-*/
-
 </script>

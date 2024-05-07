@@ -95,7 +95,33 @@ export default defineComponent({
   
   computed: {
       show()  {
-          return (this.tags?.serverURL && !this.tags.connected)
+          
+          // If there is no server configured, then there is nothing to connect to
+          if(!this.tags?.serverURL) {
+              return false
+          }
+          
+          console.log("server url set: checking if tags connected")
+          
+          if(this.tags)
+            console.log("Tags are there - are they connected?")
+          else
+            console.log("no tags: stand down")
+          
+           // If we are already connected, we don't need to show the login
+           if(this.tags?.connected) {
+              console.log("Tags are already connected: no need for login")
+              return false
+           }
+           else {
+               console.log("Tags not connected : show login")
+           }
+              
+           // Auto login if we know the username and password already
+           // if(this.username && this.password)
+           //   this.submitLogin()
+              
+           return true
       }
   },
   
@@ -106,7 +132,7 @@ export default defineComponent({
     submitLogin() {
       console.log("username:", this.username);
       console.log("password:", this.password);
-      this.tags?.connect(this.tags?.serverURL as string, "john","password")
+      this.tags?.connect(this.tags?.serverURL as string, this.username, this.password)
     },
     cancelLogin() {
       console.log("Cancelling the login")
@@ -117,8 +143,8 @@ export default defineComponent({
   },
   
   data() { return {
-    username: 'john',
-    password: 'password'
+    username: '',
+    password: ''
   }}
 });
 </script>

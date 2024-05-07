@@ -77,6 +77,18 @@ the value for the password `supersecret` is:
 echo -n 'admin:supersecret' | openssl base64
 ```
 
+**IMPORTANT** : Due to how security is configured, to do this first login, 
+you will need to edit the default `config/pouchdb/docker.ini` file and comment 
+out the line:
+
+```
+require_valid_user_except_for_up = true
+```
+
+Note that after first run of the server, CouchDB will write a line for the
+admin user into this configuration file, and after that is written, changes to the
+admin user or password won't take effect unless you first remove the line.
+
 ## CORS
 
 By default, CORS is enabled within CouchDB for all hosts. If you know the 
@@ -92,6 +104,32 @@ use cookies or default headers, it does not directly expose a CORS risk in the
 same way that regular session based authentication would. Nonetheless, it is
 best practice to restrict the origins of requests if you can.
 
+### Adding users
+
+The default security model is to use native built in CouchDB users. This requires
+you to set up all users who may access the database and their passwords
+inside the database. You might do this, for example, using the CouchDB admin tool,
+or using `curl` to put users into the database. An example curl command that puts
+a user into the database looks like:
+
+```bash
+curl -X PUT http://admin:couchdb@127.0.0.1:5984/_users/org.couchdb.user:john \
+     -H "Content-Type: application/json" \
+     -d '{"type": "user", "name": "john", "password": "password", "roles": []}'
+```
+
+The default security model is to use native built in CouchDB users. This requires
+you to set up all users who may access the database and their passwords
+inside the database. You might do this, for example, using the CouchDB admin tool,
+or using `curl` to put users into the database. An example curl command that puts
+a user into the database looks like:
+
+```bash
+curl -X PUT http://admin:couchdb@127.0.0.1:5984/_users/org.couchdb.user:john \
+     -H "Content-Type: application/json" \
+     -d '{"type": "user", "name": "john", "password": "password", "roles": []}'
+```
+
 ### Client setup
 
 The Nginx configuration places all CouchDB paths under a top level path of `/db`
@@ -99,11 +137,6 @@ which allows you to then map other paths separately, for example, to serve your
 web pages or connect to other application features. This means that in your
 client application, you should pass in a CouchDB URL looking something like
 `http://<your server>:5288/db`.
-
-The default security model is to use native built in CouchDB users. This requires
-you to set up all users who may access the database and their passwords
-inside the database. You might do this, for example, using the CouchDB admin tool,
-or using `curl` to put users into the database.
 
 Then, your client will connect to the database using code such as:
 

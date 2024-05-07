@@ -118,18 +118,6 @@ curl -X PUT http://admin:couchdb@127.0.0.1:5984/_users/org.couchdb.user:john \
      -d '{"type": "user", "name": "john", "password": "password", "roles": []}'
 ```
 
-The default security model is to use native built in CouchDB users. This requires
-you to set up all users who may access the database and their passwords
-inside the database. You might do this, for example, using the CouchDB admin tool,
-or using `curl` to put users into the database. An example curl command that puts
-a user into the database looks like:
-
-```bash
-curl -X PUT http://admin:couchdb@127.0.0.1:5984/_users/org.couchdb.user:john \
-     -H "Content-Type: application/json" \
-     -d '{"type": "user", "name": "john", "password": "password", "roles": []}'
-```
-
 ### Client setup
 
 The Nginx configuration places all CouchDB paths under a top level path of `/db`

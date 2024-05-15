@@ -277,6 +277,11 @@ class TagRepository {
      */
     connected : boolean = false
     
+    /**
+     * The sync handler for the PouchDB database, assigned when connected
+     */
+    syncHandler : PouchDB.Replication.Sync<any> | null = null
+
     /** 
      * Definitions for tags known for this database
      */
@@ -642,6 +647,7 @@ class TagRepository {
             this.user = new User(username, "Unknown")
             
             let sync = PouchDB.sync(this.pouch, this.couch!, {live: true, retry: true})
+            this.syncHandler = sync
             sync.on('change', () => {
                 console.log("Couchdb sync complete")
                 this.loadState()
@@ -649,6 +655,17 @@ class TagRepository {
         })
         
         console.log("Connected to server " + couchBaseURL)
+    }
+
+    /**
+     * Disconnect from the remote CouchDB server
+     */
+    async disconnect() {
+        if(this.syncHandler){
+            this.syncHandler.cancel()
+        }
+        this.connected = false
+        console.log("Disconnecting from server")
     }
 }
 

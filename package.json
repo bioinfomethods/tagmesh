@@ -24,7 +24,8 @@
   "scripts": {
     "test": "jest --config jestconfig.json",
     "build": "tsc",
-    "lint": "tslint -p tsconfig.json"
+    "lint": "tslint -p tsconfig.json",
+    "postinstall": "npm run build; npm pack"
   },
   "repository": {
     "type": "git",

@@ -101,6 +101,14 @@ type RepositoryEntities = {
 type TagDefinitions = {
     [key: string]: Tag;
 };
+type TagRepoConnectOptions = {
+    couchBaseURL: string;
+    username?: string | null;
+    password?: string | null;
+    headers?: {
+        [key: string]: string;
+    };
+};
 /**
  * The main class for interfacing with tag mesh from end user code.
  *
@@ -263,13 +271,10 @@ declare class TagRepository {
      * when the TagRepository is created.
      */
     loadState(): Promise<TagRepository>;
-    /**
-     *  Connects to remote CouchDB repository with given username and password
-     */
-    connect(couchBaseURL: string, username: string, password: string): Promise<void>;
+    connect({ couchBaseURL, username, password, headers }: TagRepoConnectOptions): Promise<void>;
     /**
      * Disconnect from the remote CouchDB server
      */
     disconnect(): Promise<void>;
 }
-export { TagRepository, Entity, Annotation };
+export { Annotation, Entity, TagRepository };

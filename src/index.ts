@@ -189,6 +189,12 @@ type RepositoryEntities = {[key : string] : Entity}
 
 type TagDefinitions = {[key : string] : Tag}
 
+type TagRepoConnectOptions = {
+    couchBaseURL: string;
+    username?: string | null;
+    password?: string | null;
+    headers?: { [key: string]: string };
+};
 
 /**
  * The main class for interfacing with tag mesh from end user code.
@@ -340,7 +346,7 @@ class TagRepository {
         await this.loadState()
 
         if(this.serverURL!=null)
-            this.connect(this.serverURL, username, password)
+            this.connect({couchBaseURL: this.serverURL, username, password})
     }
     
     /**
@@ -607,14 +613,17 @@ class TagRepository {
       }
       
       
-    /**  
-     *  Connects to remote CouchDB repository with given username and password
-     */
-    async connect(couchBaseURL : string, username : string, password : string) {
-        
-        // First connect schema db url
+    async connect({couchBaseURL, username = null, password = null, headers = {}} : TagRepoConnectOptions) {
+        const fetchWithHeaders: any = (url: string, opts: RequestInit) => {
+            opts.headers = new Headers(headers);
+            return fetch(url, opts);
+            };
+        const pouchDBOptions : any = headers && headers['Authorization']
+            ? { fetch: fetchWithHeaders }
+            : { auth: { username, password } };
+          
         let schemaDBURL = couchBaseURL + '/' + TagRepository.metaDataDocumentIdRoot + '__schema'
-        this.schema_db_couch = new PouchDB(schemaDBURL, { auth: { "username":  username, "password": password} })
+        this.schema_db_couch = new PouchDB(schemaDBURL, pouchDBOptions)
         this.schema_db.replicate.from(this.schema_db_couch)
             .on('complete', () => {
                 console.log("Couchdb schema replication complete")
@@ -634,7 +643,7 @@ class TagRepository {
         // Then connect / replicate the main database
         let dbURL = couchBaseURL + '/' + this.metaDataDocumentId
         console.log("Connecting to server " + dbURL)
-        this.couch = new PouchDB(dbURL, { auth: { "username":  username, "password": password} })
+        this.couch = new PouchDB(dbURL, pouchDBOptions)
         
         await this.pouch.replicate.from(this.couch).on('complete', () => {
 
@@ -644,7 +653,7 @@ class TagRepository {
 
             // TODO: once connected, we need to look up the user from the Couch database to get
             // their real user object. For now, fake it with unknown email address.
-            this.user = new User(username, "Unknown")
+            this.user = new User(username ?? "Unknown", "Unknown")
             
             let sync = PouchDB.sync(this.pouch, this.couch!, {live: true, retry: true})
             this.syncHandler = sync
@@ -669,4 +678,4 @@ class TagRepository {
     }
 }
 
-export { TagRepository, Entity, Annotation }
+export { Annotation, Entity, TagRepository };

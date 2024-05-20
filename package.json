@@ -1,6 +1,6 @@
 {
   "name": "tagmesh",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A library to enable cross-application real-time collaborative tagging and notes",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",

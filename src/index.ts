@@ -618,10 +618,12 @@ class TagRepository {
             opts.headers = new Headers(headers);
             return fetch(url, opts);
             };
-        const pouchDBOptions : any = headers && headers['Authorization']
+        const hasAuthHeaders = headers && headers['Authorization'];
+        const pouchDBOptions : any = hasAuthHeaders
             ? { fetch: fetchWithHeaders }
             : { auth: { username, password } };
-          
+        console.info(`Connecting to ${JSON.stringify(couchBaseURL)}, hasAuthHeaders=${hasAuthHeaders}`)
+
         let schemaDBURL = couchBaseURL + '/' + TagRepository.metaDataDocumentIdRoot + '__schema'
         this.schema_db_couch = new PouchDB(schemaDBURL, pouchDBOptions)
         this.schema_db.replicate.from(this.schema_db_couch)

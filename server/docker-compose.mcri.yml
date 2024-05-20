@@ -1,0 +1,20 @@
+services:
+  couchdb:
+    image: couchdb:3.3.3
+    user: 35748:38520
+    environment:
+      - COUCHDB_USER=admin
+      - COUCHDB_PASSWORD=${COUCHDB_ADMIN_PASSWORD:-couchdb}
+    logging:
+        driver: fluentd
+        options:
+            fluentd-address: localhost:24224
+            tag: "{{.Name}}/{{.ID}}"
+    volumes:
+      - ./data:/opt/couchdb/data
+      - ./config/pouchdb:/opt/couchdb/etc/local.d
+
+networks:
+  default:
+    external: true
+    name: ${RP_DOCKER_NETWORK_NAME:?err}

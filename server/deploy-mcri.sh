@@ -12,6 +12,7 @@ echo "PROJECT_DIR=$PROJECT_DIR"
 pushd "$PROJECT_DIR" || exit
 
 set -eo pipefail
+set -x
 
 FORCE=false
 SKIP_GIT=false
@@ -44,6 +45,8 @@ if [ "$SKIP_GIT" = false ]; then
 fi
 
 popd || exit
-docker compose pull
+docker compose -f docker-compose.mcri.yml pull
 docker compose down
+mkdir -p data
 docker compose -f docker-compose.mcri.yml up -d
+

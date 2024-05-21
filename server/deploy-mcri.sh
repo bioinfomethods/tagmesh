@@ -12,7 +12,7 @@ echo "PROJECT_DIR=$PROJECT_DIR"
 pushd "$PROJECT_DIR" || exit
 
 set -eo pipefail
-set -x
+# set -x
 
 FORCE=false
 SKIP_GIT=false
